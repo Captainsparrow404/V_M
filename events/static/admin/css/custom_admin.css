@@ -1,0 +1,205 @@
+/* Custom Admin Styles */
+
+/* Action Buttons */
+.button {
+    display: inline-block;
+    padding: 8px 15px;
+    margin: 0 5px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.5;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.preview-btn {
+    background-color: #417690;
+    color: white !important;
+}
+
+.preview-btn:hover {
+    background-color: #2d5066;
+}
+
+.edit-btn {
+    background-color: #79aec8;
+    color: white !important;
+}
+
+.edit-btn:hover {
+    background-color: #5789a3;
+}
+
+.archive-btn {
+    background-color: #ba2121;
+    color: white !important;
+}
+
+.archive-btn:hover {
+    background-color: #8f1919;
+}
+
+.unarchive-btn {
+    background-color: #666;
+    color: white !important;
+}
+
+.unarchive-btn:hover {
+    background-color: #444;
+}
+
+/* List Display */
+#changelist-form .column-short_description {
+    width: 25%;
+}
+
+#changelist-form .column-title {
+    width: 20%;
+}
+
+#changelist-form .column-event_date {
+    width: 15%;
+}
+
+/* Filter Styles */
+#changelist-filter {
+    position: relative !important;
+    width: 100% !important;
+    background: #f8f9fa;
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+#changelist-filter h2 {
+    font-size: 14px;
+    padding: 0;
+    margin-bottom: 15px;
+    color: #417690;
+}
+
+#changelist-filter ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 0;
+}
+
+#changelist-filter li {
+    list-style: none;
+    margin: 0;
+}
+
+#changelist-filter li a {
+    display: inline-block;
+    padding: 6px 12px;
+    background: white;
+    border-radius: 3px;
+    text-decoration: none;
+    color: #666;
+    border: 1px solid #ddd;
+    transition: all 0.2s ease;
+}
+
+#changelist-filter li.selected a {
+    background: #417690;
+    color: white;
+    border-color: #417690;
+}
+
+/* Preview Styles */
+.preview-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 30px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-radius: 8px;
+}
+
+.preview-header {
+    background: #f8f9fa;
+    padding: 20px;
+    margin: -30px -30px 30px;
+    border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid #eee;
+}
+
+.preview-content {
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.preview-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+}
+
+.preview-meta {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+/* Rich Text Editor */
+.django-ckeditor-widget {
+    width: 100% !important;
+}
+
+/* Video Container */
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%;
+    height: 0;
+    overflow: hidden;
+    margin: 20px 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    #changelist-form .column-short_description {
+        width: 20%;
+    }
+    
+    #changelist-form .column-title {
+        width: 15%;
+    }
+}
+
+@media (max-width: 767px) {
+    .button {
+        display: block;
+        margin: 5px 0;
+        text-align: center;
+    }
+    
+    #changelist-filter ul {
+        flex-direction: column;
+    }
+    
+    .preview-container {
+        padding: 15px;
+    }
+    
+    .preview-header {
+        margin: -15px -15px 20px;
+        padding: 15px;
+    }
+} 

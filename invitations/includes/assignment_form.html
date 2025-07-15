@@ -1,0 +1,72 @@
+{% load i18n %}
+
+<h2>Assign Persons for {{ invitation.name }}</h2>
+
+<form method="post" id="assignment-form">
+    {% csrf_token %}
+    {{ formset.management_form }}
+    {{ formset.non_field_errors }}
+
+    <div id="formset-container">
+        {% for form in formset %}
+            <div class="form-row">
+                {{ form.id }}
+                {{ form.non_field_errors }}
+                <div class="field-box person-field">
+                    {{ form.person.errors }}
+                    {{ form.person.label_tag }}
+                    {{ form.person }}
+                </div>
+                <div class="field-box gift-handler-field">
+                    {{ form.is_gift_handler.errors }}
+                    {{ form.is_gift_handler.label_tag }}
+                    {{ form.is_gift_handler }}
+                </div>
+                 {% if form.instance.pk %}
+                    {{ form.DELETE.label_tag }} {{ form.DELETE }}
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+    <button type="button" id="add-assignment">Add Another Person</button>
+
+    <input type="submit" value="Save Assignments">
+</form>
+
+<script>
+    // JavaScript for managing formset and AJAX submission (will be added next)
+    console.log('Assignment form loaded for invitation {{ invitation.id }}');
+
+     document.getElementById('add-assignment').addEventListener('click', function() {
+        const formsetContainer = document.getElementById('formset-container');
+        const currentForms = formsetContainer.querySelectorAll('.form-row');
+        const totalFormsInput = document.querySelector('#id_{{ formset.prefix }}-TOTAL_FORMS');
+        const totalForms = parseInt(totalFormsInput.value);
+
+        const emptyFormTemplate = `
+            <div class="form-row">
+                <input type="hidden" name="{{ formset.prefix }}-__prefix__-id" id="id_{{ formset.prefix }}-__prefix__-id">
+                <div class="field-box person-field">
+                    <label for="id_{{ formset.prefix }}-__prefix__-person">Person:</label>
+                    <select name="{{ formset.prefix }}-__prefix__-person" required id="id_{{ formset.prefix }}-__prefix__-person">
+                        <option value="">---------</option>
+                        {% for person in formset.forms.0.fields.person.queryset %}
+                            <option value="{{ person.pk }}">{{ person }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field-box gift-handler-field">
+                    <label for="id_{{ formset.prefix }}-__prefix__-is_gift_handler">Is gift handler:</label>
+                    <input type="checkbox" name="{{ formset.prefix }}-__prefix__-is_gift_handler" id="id_{{ formset.prefix }}-__prefix__-is_gift_handler">
+                </div>
+            </div>
+        `;
+
+        const newFormHtml = emptyFormTemplate.replace(/__prefix__/g, totalForms);
+        formsetContainer.insertAdjacentHTML('beforeend', newFormHtml);
+
+        totalFormsInput.value = totalForms + 1;
+    });
+
+</script> 

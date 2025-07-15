@@ -1,0 +1,243 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block extrahead %}
+<style>
+    /* Styling for horizontal filters */
+    .horizontal-filters {
+        background-color: #eef; /* Light blue background */
+        padding: 15px 20px; /* Add padding around filters */
+        margin-bottom: 25px; /* Space between filters and table */
+        border: 1px solid #ccd; /* Light border */
+        border-radius: 5px;
+        overflow: hidden; /* Clear floats */
+    }
+    .horizontal-filters form {
+        margin-bottom: 0; /* Remove default form margin */
+        display: flex; /* Use flexbox for alignment */
+        align-items: center;
+    }
+    .horizontal-filters .form-group {
+        margin-right: 20px; /* Increase space between filter groups */
+        display: flex; /* Align label and select */
+        align-items: center;
+    }
+    .horizontal-filters label {
+        margin-right: 8px; /* Space between label and select */
+        font-weight: bold;
+    }
+     .horizontal-filters select, .horizontal-filters button, .horizontal-filters a.button {
+        padding: 6px 10px; /* Adjust padding */
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1em; /* Standardize font size */
+     }
+     .horizontal-filters button[type="submit"] {
+        background-color: #007bff; /* Blue background */
+        color: white; /* White text */
+        border-color: #007bff;
+        margin-right: 10px; /* Space between Filter and Clear buttons */
+     }
+      .horizontal-filters button[type="submit"]:hover {
+        background-color: #0056b3; /* Darker blue on hover */
+        border-color: #004085; /* Darker blue on hover */
+     }
+     .horizontal-filters a.button {
+        background-color: #f8f9fa; /* Light background for Clear button */
+        color: #333; /* Dark text */
+        text-decoration: none; /* Remove underline */
+        display: inline-block;
+        border-color: #ccc;
+     }
+      .horizontal-filters a.button:hover {
+        background-color: #e2e6ea; /* Lighter grey on hover */
+        border-color: #ccc; /* Keep border color */
+     }
+
+    /* Table styling */
+     #result_list {
+        width: 100%; /* Make the table fill the container width */
+        border-collapse: collapse; /* Optional: for cleaner borders */
+        margin: 0; /* Explicitly remove margin */
+        padding: 0; /* Explicitly remove padding */
+        box-sizing: border-box; /* Include padding and border in the element's total width and height */
+        table-layout: fixed; /* Add table-layout fixed */
+     }
+
+     #result_list th,
+     #result_list td {
+         padding: 7px 10px; /* Further adjusted padding */
+         vertical-align: top;
+         text-align: left; /* Align data to the left */
+         border-bottom: 1px solid #dee2e6; /* Add border for separation */
+         word-wrap: break-word; /* Allow text to wrap */
+     }
+     #result_list thead th {
+        white-space: nowrap; /* Keep headers on one line */
+        font-size: 0.9em; /* Adjust font size as needed */
+        padding-top: 8px; /* Further reduced top padding */
+        padding-bottom: 8px; /* Further reduced bottom padding */
+        border-bottom: 2px solid #dee2e6; /* Add border for separation */
+     }
+    #result_list tbody tr:last-child td {
+        border-bottom: none; /* Remove border for the last row */
+    }
+
+    /* Adjust width for specific columns if necessary */
+     .field-invitation {
+          width: 25%;
+      }
+      .field-person {
+          width: 25%;
+      }
+     .field-is_gift_handler {
+          width: 15%;
+          text-align: center;
+     }
+
+    .assigned-persons-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .assigned-persons-list li {
+        margin-bottom: 5px;
+        padding-bottom: 5px;
+        border-bottom: 1px dotted #eee; /* Optional: separator between persons */
+    }
+     .assigned-persons-list li:last-child {
+         border-bottom: none;
+         margin-bottom: 0;
+         padding-bottom: 0;
+     }
+
+    /* Style for the custom Add button */
+    .custom-add-button {
+        /* Removed display: inline-block; */
+        background-color: #4CAF50; /* Green background */
+        color: white !important; /* White text - Use !important to override potential default admin styles */
+        padding: 10px 15px; /* Padding */
+        text-align: center;
+        text-decoration: none; /* Remove underline */
+        font-size: 14px; /* Font size */
+        border-radius: 5px; /* Rounded corners */
+        margin-bottom: 15px; /* Space below the button */
+        float: right; /* Float to the right */
+    }
+    .custom-add-button:hover {
+        background-color: #45a049; /* Darker green on hover */
+        color: white !important; /* Keep text white on hover */
+    }
+
+</style>
+{% endblock %}
+
+{% block object-tools %}
+{# Commenting out the standard object-tools block for now #}
+{# {{ block.super }} #}
+{# <li>
+    {% url 'admin:invitations_assignment_add' as add_url %}
+    <a href="{% add_preserved_filters add_url is_popup to_field %}" class="addlink"> {# Use Django admin's addlink class #}
+        {% blocktrans with cl.opts.verbose_name_plural as verbose_name %}Add {{ verbose_name|slice:":-1" }}{% endblocktrans %} {# Use verbose_name_plural and slice to get singular #}
+    </a>
+</li> #}
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+
+    {# Custom Add Assignment button #}
+    <a href="{% url 'admin:invitations_assignment_add' %}" class="custom-add-button">+ Add Assignment</a>
+
+{% block object-tools-items %}{% endblock %} {# Keep this block for any default items that might appear here #}
+
+<div class="horizontal-filters">
+    <form method="get" action="{% url 'admin:invitations_assignment_changelist' %}">
+        <div class="form-group">
+            <label for="invitation-filter">Invitation:</label>
+            <select name="invitation__id" id="invitation-filter">
+                <option value="">All</option>
+                {% for invitation in horizontal_filters.invitations %}
+                    <option value="{{ invitation.id }}" {% if invitation.id|stringformat:"d" == request.GET.invitation__id %}selected{% endif %}>{{ invitation.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="person-filter">Person:</label>
+            <select name="person__id" id="person-filter"> {# Reverted filter name #}
+                <option value="">All</option>
+                {% for person in horizontal_filters.persons %}
+                    <option value="{{ person.id }}" {% if person.id|stringformat:"d" == request.GET.person__id %}selected{% endif %}>{{ person.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group"> {# Reverted Gift Handler filter #}
+            <label for="gift-handler-filter">Gift Handler:</label>
+            <select name="is_gift_handler" id="gift-handler-filter">
+                <option value="">All</option>
+                {% for value, label in horizontal_filters.gift_handler_options %}
+                    <option value="{{ value|stringformat:"s" }}" {% if value|stringformat:"s" == request.GET.is_gift_handler %}selected{% endif %}>{{ label }}</option> {# Ensure value is string #}
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit">Filter</button>
+         <a href="{% url 'admin:invitations_assignment_changelist' %}" class="button">Clear Filters</a>
+    </form>
+</div>
+
+{% block result_list %}
+{% comment %} Group assignments by invitation {% endcomment %}
+{% regroup cl.result_list by invitation as assignments_by_invitation %}
+    <table id="result_list">
+        <thead>
+            <tr>
+                <th>Invitation</th> {# Reverted header #}
+                <th>Person</th> {# Reverted header #}
+                <th>Is Gift Handler</th> {# Reverted header #}
+            </tr>
+        </thead>
+        <tbody>
+            {% for invitation_group in assignments_by_invitation %}
+                <tr class="{% cycle 'row1' 'row2' %}">
+                    <td rowspan="{{ invitation_group.list|length }}">{{ invitation_group.grouper.name|default_if_none:"-" }}</td> {# Display invitation name once #}
+                    <td>{{ invitation_group.list.0.person.name }}</td> {# Display first person #}
+                    <td>
+                        {% if invitation_group.list.0.is_gift_handler %}
+                            <img src="{% static 'admin/img/icon-yes.svg' %}" alt="True">
+                        {% else %}
+                            <img src="{% static 'admin/img/icon-no.svg' %}" alt="False">
+                        {% endif %}
+                    </td>
+                </tr>
+                {% for assignment in invitation_group.list|slice:"1:" %}{# Iterate over remaining assignments #}
+                    <tr class="{% cycle 'row1' 'row2' %}">
+                        <td>{{ assignment.person.name }}</td>
+                        <td>
+                            {% if assignment.is_gift_handler %}
+                                <img src="{% static 'admin/img/icon-yes.svg' %}" alt="True">
+                            {% else %}
+                                <img src="{% static 'admin/img/icon-no.svg' %}" alt="False">
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% empty %}
+            <tr><td colspan="3" class="text-center">No assignments found.</td></tr> {# Reverted colspan #}
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
+</div>
+{% endblock %}
+
+{# We don't need to render the default pagination #}
+{% block pagination %}{% endblock %}
+
+{# block footer %}{{ block.super }}{% endblock #}
+
+{# block scripts %}
+{# {{ block.super }} #}
+{# Add any specific scripts for this change_list here #}
+{# endblock #} 

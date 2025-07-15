@@ -1,0 +1,1713 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+{% load admin_list %}
+{% load voter_extras %}
+{% load i18n admin_urls %}
+
+{% csrf_token %}
+
+{% block content %}
+<div id="content-main">
+    <!-- Header Section with Action Buttons -->
+    <div class="page-header">
+        <div class="header-left">
+            <h1>Voter Management</h1>
+            <div class="status-info">
+                <div class="status-info-item">
+                    <span class="status-label">Current Date and Time (UTC):</span>
+                    <span class="status-value" id="current-datetime">{{ current_datetime|date:"Y-m-d H:i:s" }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="action-buttons">
+                <a href="{% url 'admin:voter-upload-excel' %}" class="btn btn-secondary">
+                    <i class="fas fa-file-excel"></i> Upload Excel
+                </a>
+                <button class="btn btn-primary" onclick="openModal()">
+                    <i class="fas fa-plus"></i> Add Voter
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Controls -->
+    <div class="control-section filter-controls">
+        <div class="section-header">
+            <h3><i class="fas fa-filter"></i> Filter Options</h3>
+        </div>
+        <div class="filter-form">
+            <div class="filters-row">
+                <div class="control-group">
+                    <label for="mlc-filter">MLC Constituency:</label>
+                    <select id="mlc-filter" class="styled-select">
+                        <option value="">All Constituencies</option>
+                        {% for mlc in unique_mlc %}
+                        <option value="{{ mlc }}" {% if current_filters.mlc_constituency == mlc %}selected{% endif %}>
+                            {{ mlc }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="assembly-filter">Assembly:</label>
+                    <select id="assembly-filter" class="styled-select" disabled>
+                        <option value="">All Assemblies</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="mandal-filter">Mandal:</label>
+                    <select id="mandal-filter" class="styled-select" disabled>
+                        <option value="">All Mandals</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="village-filter">Village:</label>
+                    <select id="village-filter" class="styled-select" disabled>
+                        <option value="">All Villages</option>
+                    </select>
+                </div>
+                <div class="filter-actions">
+                    <button id="apply-filters" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Apply
+                    </button>
+                    <button id="clear-filters" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Controls -->
+    <div class="control-section notification-controls">
+        <div class="section-header">
+            <h3><i class="fas fa-bell"></i> Notification Settings</h3>
+        </div>
+        <div class="notification-form">
+            <!-- In the notification controls section, update the notification-row div -->
+            <div class="notification-row">
+                <div class="control-group">
+                    <label for="notification-type">Notification Type</label>
+                    <select id="notification-type" class="styled-select">
+                        <option value="">Select Type</option>
+                        {% for type in notification_types %}
+                        <option value="{{ type.id }}">{{ type.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="notification-template">Template</label>
+                    <select id="notification-template" class="styled-select" disabled>
+                        <option value="">Select Template</option>
+                        <!-- Templates will be populated via JavaScript -->
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="notification-channel">Channel</label>
+                    <select id="notification-channel" class="styled-select">
+                        <option value="">Select Channel</option>
+                        {% for channel in notification_channels %}
+                        <option value="{{ channel.id }}">{{ channel.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="notification-actions">
+                    <button id="send-notification-btn" onclick="sendNotification()" class="btn btn-success" disabled>
+                        <i class="fas fa-paper-plane"></i> Send
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voters Table Section -->
+    <div class="table-section">
+        <div class="table-header">
+            <div class="table-title">
+                <h3><i class="fas fa-users"></i> Voters List</h3>
+                <span class="record-count">Total Records: {{ cl.result_count }}</span>
+            </div>
+            <div class="table-actions">
+                <button id="bulk-delete-btn" class="btn btn-danger" onclick="bulkDeleteVoters()" disabled>
+                    <i class="fas fa-trash"></i> Delete Selected
+                </button>
+            </div>
+        </div>
+        <div class="table-container">
+            <div class="table-scroll">
+                <table id="voters-table" class="voters-table">
+                    <thead>
+                        <tr>
+                            <th class="fixed-column checkbox-column">
+                                <input type="checkbox" id="select-all" onclick="toggleAllVoters()">
+                            </th>
+                            {% for field in excel_fields %}
+                            <th class="data-column">{{ field }}</th>
+                            {% endfor %}
+                            <th class="fixed-column-right actions-column">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in cl.result_list %}
+                        <tr class="voter-row">
+                            <td class="fixed-column checkbox-column">
+                                <input type="checkbox" class="voter-select" value="{{ result.id }}" onchange="updateBulkDeleteButton()">
+                            </td>
+                            {% for field in excel_fields %}
+                            <td class="data-column">{{ result|get_field_value:field }}</td>
+                            {% endfor %}
+                            <td class="fixed-column-right actions-column">
+                                <div class="action-buttons-group">
+                                    <button class="btn-icon edit-btn" onclick="editVoter({{ result.id }})" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-icon delete-btn" onclick="deleteVoter({{ result.id }})" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% if cl.result_count %}
+        <div class="pagination-container">
+            {% pagination cl %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Edit Voter Modal -->
+    <div id="edit-voter-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Voter</h2>
+                <span class="close" onclick="closeEditModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="edit-voter-form">
+                    <input type="hidden" id="edit-voter-id" name="voter_id">
+                    <div class="form-grid">
+                        {% for field in excel_fields %}
+                        <div class="form-group {% if field in 'MLC CONSTITUNCY,ASSEMBLY,MANDAL,SNO,MOBILE NO' %}required{% endif %}">
+                            <label for="edit-{{ field|slugify }}">{{ field }}:</label>
+                            <input type="text" id="edit-{{ field|slugify }}" name="{{ field }}" {% if field in 'MLC CONSTITUNCY,ASSEMBLY,MANDAL,SNO,MOBILE NO' %}required{% endif %}>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Update Voter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Voter Modal -->
+    <div id="add-voter-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Voter</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="add-voter-form">
+                    <div class="form-grid">
+                        {% for field in excel_fields %}
+                        <div class="form-group {% if field in 'MLC CONSTITUNCY,ASSEMBLY,MANDAL,SNO,MOBILE NO' %}required{% endif %}">
+                            <label for="{{ field|slugify }}">{{ field }}:</label>
+                            <input type="text" id="{{ field|slugify }}" name="{{ field }}" {% if field in 'MLC CONSTITUNCY,ASSEMBLY,MANDAL,SNO,MOBILE NO' %}required{% endif %}>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Voter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block footer %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+<style>
+    /* Reset and Base Styles */
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background-color: #f5f7fa;
+    }
+
+    /* Main Content Container */
+    #content-main {
+        padding: 24px;
+        background: #f5f7fa;
+        min-height: 100vh;
+    }
+
+    /* Update header layout for better balance */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center; /* Changed from flex-start to center */
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 24px 32px; /* Reduced from 32px */
+        border-radius: 12px;
+        margin-bottom: 32px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .page-header h1 {
+        font-size: 2.2rem; /* Slightly reduced from 2.5rem */
+        font-weight: 700;
+        margin-bottom: 12px; /* Reduced from 16px */
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .header-left {
+        flex: 1;
+    }
+
+    .header-right {
+        display: flex;
+        align-items: center;
+    }
+
+    /* Update status info styles */
+    .status-info {
+        display: flex;
+        gap: 16px; /* Reduced from 32px */
+        margin-top: 12px; /* Reduced from 16px */
+    }
+
+    .status-info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .status-label {
+        font-size: 0.875rem;
+        opacity: 0.9;
+        font-weight: 500;
+    }
+
+    .status-value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #fff;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    /* Control Sections */
+    .control-section {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 24px;
+        overflow: hidden;
+        border: 1px solid #e1e8ed;
+    }
+
+    .section-header {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        padding: 20px 24px;
+        border-bottom: 1px solid #e1e8ed;
+    }
+
+    .section-header h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #2d3748;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0;
+    }
+
+    .section-header i {
+        color: #667eea;
+        font-size: 1.1rem;
+    }
+
+    /* Filter Controls */
+    .filter-form {
+        padding: 20px;
+    }
+
+    .filters-row {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 15px;
+        align-items: flex-end;
+    }
+
+    .control-group {
+        flex: 1;
+        min-width: 150px;
+        margin-bottom: 0;
+    }
+
+    .control-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+        color: #495057;
+        font-size: 0.9rem;
+    }
+
+    .styled-select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: white;
+    }
+
+    .styled-select optgroup {
+        font-weight: bold;
+        color: #495057;
+        padding: 5px;
+    }
+
+    .styled-select option {
+        padding: 5px;
+        color: #212529;
+    }
+
+    .styled-select option:disabled {
+        color: #6c757d;
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+        white-space: nowrap;
+    }
+
+    .filter-actions button {
+        height: 38px;
+    }
+
+    /* Update the notification-form class */
+    .notification-form {
+        padding: 20px;
+        display: flex;
+        flex-wrap: nowrap; /* Changed from wrap to nowrap */
+        gap: 15px; /* Reduced gap */
+        align-items: flex-end;
+    }
+
+    .notification-row {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 15px;
+        align-items: flex-end;
+        width: 100%;
+    }
+
+    .notification-form .control-group {
+        flex: 1;
+        min-width: 150px; /* Reduced from 200px */
+        margin-bottom: 0;
+    }
+
+    .notification-actions {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+        white-space: nowrap;
+        margin-top: 0; /* Remove top margin */
+    }
+
+    .notification-actions button {
+        height: 38px; /* Match filter button height */
+    }
+
+
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+    }
+
+    .modal-content {
+        background: white;
+        margin: 3% auto;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+
+        animation: modalSlideIn 0.3s ease;
+    }
+    /* Modal actions styling */
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-50px) scale(0.9);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 24px 32px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .modal-header h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .close {
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        color: white;
+        opacity: 0.8;
+        transition: opacity 0.2s ease;
+        line-height: 1;
+    }
+
+    .close:hover {
+        opacity: 1;
+    }
+
+    .modal-body {
+        padding: 32px;
+    }
+
+    /* Form Styles */
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-group.required label::after {
+        content: " *";
+        color: #dc3545;
+        font-weight: bold;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        color: #4a5568;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        color: #2d3748;
+        transition: all 0.2s ease;
+        background-color: white;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-group input:invalid {
+        border-color: #dc3545;
+    }
+
+    .form-group input:invalid:focus {
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+    }
+
+    /* Table Section */
+    .table-section {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        border: 1px solid #e1e8ed;
+    }
+
+    .table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-bottom: 1px solid #e1e8ed;
+    }
+
+    .table-title {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .table-title h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #2d3748;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .record-count {
+        background: #667eea;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .table-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    /* Table Container */
+    .table-container {
+        overflow: hidden;
+    }
+
+    .table-scroll {
+        overflow-x: auto;
+        max-height: 70vh;
+    }
+
+    /* Table Styles */
+    #voters-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+    }
+
+    /* Update table header styles */
+    #voters-table th {
+        background: linear-gradient(135deg, #e8eaf0 0%, #d8dae0 100%); /* Light gray gradient */
+        color: #333; /* Dark text */
+        padding: 16px 12px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid #c8cad0; /* Lighter border */
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+
+    #voters-table td {
+        padding: 16px 12px;
+        border-bottom: 1px solid #e2e8f0;
+        vertical-align: middle;
+        background: white;
+    }
+
+    #voters-table tbody tr {
+        transition: all 0.2s ease;
+    }
+
+    #voters-table tbody tr:hover {
+        background-color: #f7fafc;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    #voters-table tbody tr:nth-child(even) {
+        background-color: #fafbfc;
+    }
+
+    #voters-table tbody tr:nth-child(even):hover {
+        background-color: #f1f5f9;
+    }
+
+    /* Fixed Columns */
+    .fixed-column,
+    .fixed-column-right {
+        position: sticky;
+        z-index: 5;
+        background: inherit;
+        box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .fixed-column {
+        left: 0;
+        min-width: 60px;
+        text-align: center;
+    }
+
+    .fixed-column-right {
+        right: 0;
+        min-width: 120px;
+        text-align: center;
+    }
+
+    .checkbox-column {
+        width: 60px;
+        text-align: center;
+    }
+
+    .actions-column {
+        width: 120px;
+        text-align: center;
+    }
+    /* Button icon styles for action buttons */
+    .btn-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.875rem;
+    }
+
+    .edit-btn {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+
+    .edit-btn:hover {
+        background: #bbdefb;
+    }
+
+    .delete-btn {
+        background: #ffebee;
+        color: #d32f2f;
+    }
+
+    .delete-btn:hover {
+        background: #ffcdd2;
+    }
+
+    .action-buttons-group {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+    }
+
+    /* Button Styles */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn:active {
+        transform: translateY(0);
+    }
+
+    /* Update button styles for lighter colors */
+    .btn-primary {
+        background: linear-gradient(135deg, #a8b8f0 0%, #b8a8d8 100%); /* Lighter blue/purple */
+        color: #333; /* Dark text for better contrast */
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #9aa8e8 0%, #a898d0 100%);
+    }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, #b8c1cc 0%, #a8b1b8 100%); /* Lighter gray */
+        color: #333;
+    }
+
+    .btn-secondary:hover {
+        background: linear-gradient(135deg, #a8b1b8 0%, #98a1a8 100%);
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #90d4a4 0%, #88d4c4 100%); /* Lighter green */
+        color: #333;
+    }
+
+    .btn-success:hover {
+        background: linear-gradient(135deg, #80c494 0%, #78c4b4 100%);
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, #f0a8a8 0%, #e898a8 100%); /* Lighter red */
+        color: #333;
+    }
+
+    .btn-danger:hover {
+        background: linear-gradient(135deg, #e898a8 0%, #d888a8 100%);
+    }
+
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .info-header {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .modal-content {
+            width: 95%;
+            margin: 2% auto;
+        }
+    }
+
+    /* Add to your existing styles */
+    .notification-controls {
+        margin-bottom: 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .notification-form {
+        padding: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        align-items: flex-end;
+    }
+
+    .notification-form .control-group {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .notification-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .btn:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+    }
+
+    .styled-select {
+        width: 100%;
+        padding: 0px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: white;
+    }
+
+    .styled-select optgroup {
+        font-weight: bold;
+        color: #495057;
+        padding: 5px;
+    }
+
+    .styled-select option {
+        padding: 5px;
+        color: #212529;
+    }
+
+    .styled-select option:disabled {
+        color: #6c757d;
+    }
+
+    .filter-actions .btn-primary:disabled {
+        background-color: #007bff80;
+    }
+
+    @media (max-width: 768px) {
+        .notification-form {
+            flex-direction: column;
+        }
+
+        .notification-form .control-group {
+            width: 100%;
+        }
+    }
+    /* Edit modal specific styles */
+    #edit-voter-modal .modal-header {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+
+    #edit-voter-modal .modal-header h2 {
+        color: white;
+    }
+
+    #edit-voter-modal .close {
+        color: white;
+    }
+
+    /* Form validation styles for edit form */
+    #edit-voter-form .form-group.required label::after {
+        content: " *";
+        color: #dc3545;
+        font-weight: bold;
+    }
+
+    #edit-voter-form input:invalid {
+        border-color: #dc3545;
+    }
+
+    #edit-voter-form input:invalid:focus {
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+    }
+    /*Pagination styling*/
+    .pagination-container {
+        padding: 20px;
+        background: white;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .pagination {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .pagination-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        background: white;
+        color: #374151;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        min-width: 40px;
+    }
+
+    .pagination-link:hover {
+        background: #f3f4f6;
+        border-color: #9ca3af;
+        color: #111827;
+    }
+
+    .pagination-current {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 12px;
+        background: #667eea;
+        color: white;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        min-width: 40px;
+    }
+
+    .pagination-ellipsis {
+        padding: 8px 4px;
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+
+    .pagination-info {
+        color: #6b7280;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    @media (max-width: 768px) {
+        .pagination-container {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .pagination {
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+    }
+
+</style>
+
+<script>
+    // Function to update current date and time (Local Time)
+function updateCurrentDateTime() {
+    const now = new Date();
+
+    // Format: YYYY-MM-DD HH:MM:SS (Local Time)
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+
+    const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+    const datetimeElement = document.getElementById('current-datetime');
+    if (datetimeElement) {
+        datetimeElement.textContent = formattedDateTime;
+    }
+}
+document.addEventListener('DOMContentLoaded', function() {
+
+    updateCurrentDateTime();
+
+    // Update time every second
+    setInterval(updateCurrentDateTime, 1000);
+
+    const mlcFilter = document.getElementById('mlc-filter');
+    const assemblyFilter = document.getElementById('assembly-filter');
+    const mandalFilter = document.getElementById('mandal-filter');
+    const villageFilter = document.getElementById('village-filter');
+    const applyFiltersBtn = document.getElementById('apply-filters');
+    const clearFiltersBtn = document.getElementById('clear-filters');
+
+    // Fetch filtered data from server
+    async function fetchFilteredData(type, parentValue) {
+        try {
+            const params = new URLSearchParams({
+                type: type,
+                value: parentValue || ''
+            });
+            const response = await fetch(`{% url 'admin:get-filtered-data' %}?${params}`);
+            if (!response.ok) throw new Error('Network response was not ok');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching filtered data:', error);
+            return [];
+        }
+    }
+
+    // Update select element
+    function updateSelect(select, data, currentValue = '') {
+        const label = select.previousElementSibling.textContent.slice(0, -1);
+        select.innerHTML = `<option value="">All ${label}s</option>`;
+        if (data && data.length > 0) {
+            select.disabled = false;
+            data.forEach(value => {
+                if (value) {
+                    const option = new Option(value, value);
+                    if (value === currentValue) {
+                        option.selected = true;
+                    }
+                    select.add(option);
+                }
+            });
+        } else {
+            select.disabled = true;
+        }
+    }
+
+    // Update dependent dropdowns
+    async function updateDependentDropdowns(changedFilter) {
+        try {
+            if (changedFilter === 'mlc' || changedFilter === 'all') {
+                const mlcValue = mlcFilter.value;
+                if (mlcValue) {
+                    const assemblies = await fetchFilteredData('assembly', mlcValue);
+                    updateSelect(assemblyFilter, assemblies);
+                } else {
+                    assemblyFilter.disabled = true;
+                    mandalFilter.disabled = true;
+                    villageFilter.disabled = true;
+                }
+            }
+
+            if ((changedFilter === 'assembly' || changedFilter === 'all') && !assemblyFilter.disabled) {
+                const assemblyValue = assemblyFilter.value;
+                if (assemblyValue) {
+                    const mandals = await fetchFilteredData('mandal', assemblyValue);
+                    updateSelect(mandalFilter, mandals);
+                } else {
+                    mandalFilter.disabled = true;
+                    villageFilter.disabled = true;
+                }
+            }
+
+            if ((changedFilter === 'mandal' || changedFilter === 'all') && !mandalFilter.disabled) {
+                const mandalValue = mandalFilter.value;
+                if (mandalValue) {
+                    const villages = await fetchFilteredData('village', mandalValue);
+                    updateSelect(villageFilter, villages);
+                } else {
+                    villageFilter.disabled = true;
+                }
+            }
+        } catch (error) {
+            console.error('Error updating dropdowns:', error);
+        }
+    }
+
+    let currentPage = 1;
+    let currentFilters = {};
+
+    // Apply filters function with pagination
+    async function applyFilters(page = 1) {
+        try {
+            const filters = {
+                mlc: mlcFilter.value,
+                assembly: assemblyFilter.value,
+                mandal: mandalFilter.value,
+                village: villageFilter.value,
+                page: page,
+                per_page: 50
+            };
+
+            // Store current filters
+            currentFilters = filters;
+            currentPage = page;
+
+            // Build query string
+            const params = new URLSearchParams();
+            Object.entries(filters).forEach(([key, value]) => {
+                if (value) params.append(key, value);
+            });
+
+            // Make API call to fetch filtered data
+            const response = await fetch(`{% url 'admin:admin-filter-voters' %}?${params.toString()}`);
+            const result = await response.json();
+
+            if (result.success) {
+                updateTable(result.data);
+                updatePagination(result.pagination);
+                updateRecordCount(result.pagination.total_count);
+            } else {
+                alert('Error fetching data: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Error applying filters:', error);
+            alert('Error applying filters: ' + error.message);
+        }
+    }
+
+    // Update table function
+    function updateTable(data) {
+        const tbody = document.querySelector('#voters-table tbody');
+        if (!tbody) return;
+
+        // Clear existing rows
+        tbody.innerHTML = '';
+
+        if (data.length === 0) {
+            // Show no data message
+            const row = document.createElement('tr');
+            row.innerHTML = `<td colspan="${{% for field in excel_fields %}1+{% endfor %}2}" class="text-center">No voters found matching the selected criteria.</td>`;
+            tbody.appendChild(row);
+            return;
+        }
+
+        // Add new rows
+        data.forEach(voter => {
+            const row = document.createElement('tr');
+            row.className = 'voter-row';
+
+            // Checkbox column
+            const checkboxCell = document.createElement('td');
+            checkboxCell.className = 'fixed-column checkbox-column';
+            checkboxCell.innerHTML = `<input type="checkbox" class="voter-select" value="${voter.id}" onchange="updateBulkDeleteButton()">`;
+            row.appendChild(checkboxCell);
+
+            // Data columns
+            {% for field in excel_fields %}
+            const cell{{ forloop.counter }} = document.createElement('td');
+            cell{{ forloop.counter }}.className = 'data-column';
+            cell{{ forloop.counter }}.textContent = voter['{{ field }}'] || '';
+            row.appendChild(cell{{ forloop.counter }});
+            {% endfor %}
+
+            // Actions column
+            const actionsCell = document.createElement('td');
+            actionsCell.className = 'fixed-column-right actions-column';
+            actionsCell.innerHTML = `
+                <div class="action-buttons-group">
+                    <button class="btn-icon edit-btn" onclick="editVoter(${voter.id})" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-icon delete-btn" onclick="deleteVoter(${voter.id})" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            row.appendChild(actionsCell);
+
+            tbody.appendChild(row);
+        });
+
+        // Update bulk delete button state
+        updateBulkDeleteButton();
+    }
+
+    // Update pagination function
+    function updatePagination(pagination) {
+        const paginationContainer = document.querySelector('.pagination-container');
+        if (!paginationContainer) return;
+
+        let paginationHTML = '';
+
+        if (pagination.total_pages > 1) {
+            paginationHTML = '<div class="pagination">';
+
+            // Previous button
+            if (pagination.has_previous) {
+                paginationHTML += `<a href="#" class="pagination-link" data-page="${pagination.previous_page}">‹ Previous</a>`;
+            }
+
+            // Page numbers
+            const startPage = Math.max(1, pagination.current_page - 2);
+            const endPage = Math.min(pagination.total_pages, pagination.current_page + 2);
+
+            if (startPage > 1) {
+                paginationHTML += `<a href="#" class="pagination-link" data-page="1">1</a>`;
+                if (startPage > 2) {
+                    paginationHTML += '<span class="pagination-ellipsis">...</span>';
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === pagination.current_page) {
+                    paginationHTML += `<span class="pagination-current">${i}</span>`;
+                } else {
+                    paginationHTML += `<a href="#" class="pagination-link" data-page="${i}">${i}</a>`;
+                }
+            }
+
+            if (endPage < pagination.total_pages) {
+                if (endPage < pagination.total_pages - 1) {
+                    paginationHTML += '<span class="pagination-ellipsis">...</span>';
+                }
+                paginationHTML += `<a href="#" class="pagination-link" data-page="${pagination.total_pages}">${pagination.total_pages}</a>`;
+            }
+
+            // Next button
+            if (pagination.has_next) {
+                paginationHTML += `<a href="#" class="pagination-link" data-page="${pagination.next_page}">Next ›</a>`;
+            }
+
+            paginationHTML += '</div>';
+
+            // Add pagination info
+            paginationHTML += `
+                <div class="pagination-info">
+                    Showing ${pagination.start_index} to ${pagination.end_index} of ${pagination.total_count} entries
+                </div>
+            `;
+        }
+
+        paginationContainer.innerHTML = paginationHTML;
+
+        // Add click events to pagination links
+        document.querySelectorAll('.pagination-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const page = parseInt(this.dataset.page);
+                applyFilters(page);
+            });
+        });
+    }
+
+    // Update record count function
+    function updateRecordCount(count) {
+        const recordCountElement = document.querySelector('.record-count');
+        if (recordCountElement) {
+            recordCountElement.textContent = `Total Records: ${count}`;
+        }
+    }
+
+
+    // Clear filters
+    function clearFilters() {
+        mlcFilter.value = '';
+        assemblyFilter.value = '';
+        assemblyFilter.disabled = true;
+        mandalFilter.value = '';
+        mandalFilter.disabled = true;
+        villageFilter.value = '';
+        villageFilter.disabled = true;
+
+        // Reset to page 1 and clear filters
+        currentPage = 1;
+        currentFilters = {};
+
+        // Reload page to show all data
+        window.location.href = window.location.pathname;
+    }
+
+    // Event listeners
+    mlcFilter.addEventListener('change', () => updateDependentDropdowns('mlc'));
+    assemblyFilter.addEventListener('change', () => updateDependentDropdowns('assembly'));
+    mandalFilter.addEventListener('change', () => updateDependentDropdowns('mandal'));
+    applyFiltersBtn.addEventListener('click', () => applyFilters(1)); // Reset to page 1 when applying new filters
+    clearFiltersBtn.addEventListener('click', clearFilters);
+
+    // Initialize filters if values are present
+    if (mlcFilter.value) {
+        updateDependentDropdowns('all');
+    }
+    // Notification cascading dropdowns
+    const notificationTypeSelect = document.getElementById('notification-type');
+    const notificationTemplateSelect = document.getElementById('notification-template');
+    const notificationChannelSelect = document.getElementById('notification-channel');
+    const sendNotificationBtn = document.getElementById('send-notification-btn');
+
+    // Templates data from Django context
+    const templatesByType = {{ templates_by_type|safe }};
+
+    // Handle notification type change
+    notificationTypeSelect.addEventListener('change', function() {
+        const selectedTypeId = this.value;
+
+        // Clear and disable template dropdown
+        notificationTemplateSelect.innerHTML = '<option value="">Select Template</option>';
+        notificationTemplateSelect.disabled = !selectedTypeId;
+
+        // Reset template selection
+        notificationTemplateSelect.value = '';
+
+        // Update send button state
+        updateSendButtonState();
+
+        if (selectedTypeId && templatesByType[selectedTypeId]) {
+            // Populate templates for selected type
+            templatesByType[selectedTypeId].forEach(template => {
+                const option = new Option(template.name, template.id);
+                notificationTemplateSelect.add(option);
+            });
+            notificationTemplateSelect.disabled = false;
+        }
+    });
+
+    // Handle template selection change
+    notificationTemplateSelect.addEventListener('change', function() {
+        updateSendButtonState();
+    });
+
+    // Handle channel selection change
+    notificationChannelSelect.addEventListener('change', function() {
+        updateSendButtonState();
+    });
+
+    // Update send button state based on selections
+    function updateSendButtonState() {
+        const hasType = notificationTypeSelect.value !== '';
+        const hasTemplate = notificationTemplateSelect.value !== '';
+        const hasChannel = notificationChannelSelect.value !== '';
+        const hasSelectedVoters = document.querySelectorAll('.voter-select:checked').length > 0;
+
+        sendNotificationBtn.disabled = !(hasType && hasTemplate && hasChannel && hasSelectedVoters);
+    }
+
+    // Update send button state when voters are selected/deselected
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('voter-select') || e.target.id === 'select-all') {
+            updateSendButtonState();
+        }
+    });
+});
+
+function sendNotification() {
+    const notificationType = document.getElementById('notification-type').value;
+    const notificationTemplate = document.getElementById('notification-template').value;
+    const notificationChannel = document.getElementById('notification-channel').value;
+    const selectedVoters = Array.from(document.querySelectorAll('.voter-select:checked')).map(cb => cb.value);
+
+    if (!notificationType || !notificationTemplate || !notificationChannel) {
+        alert('Please select notification type, template, and channel.');
+        return;
+    }
+
+    if (selectedVoters.length === 0) {
+        alert('Please select at least one voter to send notifications.');
+        return;
+    }
+
+    if (confirm(`Send notifications to ${selectedVoters.length} selected voter(s)?`)) {
+        // Show loading state
+        const sendBtn = document.getElementById('send-notification-btn');
+        const originalText = sendBtn.innerHTML;
+        sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        sendBtn.disabled = true;
+
+        fetch('{% url "admin:send-notification" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                type_id: notificationType,
+                template_id: notificationTemplate,
+                channel: notificationChannel,
+                voter_ids: selectedVoters
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Notifications sent successfully!\nSent: ${data.data.total_sent}\nFailed: ${data.data.total_failed}`);
+                // Clear selections
+                document.getElementById('select-all').checked = false;
+                document.querySelectorAll('.voter-select').forEach(cb => cb.checked = false);
+                updateBulkDeleteButton();
+                updateSendButtonState();
+            } else {
+                alert('Error sending notifications: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error sending notifications: ' + error.message);
+        })
+        .finally(() => {
+            // Restore button state
+            sendBtn.innerHTML = originalText;
+            sendBtn.disabled = false;
+            updateSendButtonState();
+        });
+    }
+}
+
+
+// Update bulk delete button
+function updateBulkDeleteButton() {
+    const selectedVoters = document.querySelectorAll('.voter-select:checked');
+    const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+    if (bulkDeleteBtn) {
+        bulkDeleteBtn.disabled = selectedVoters.length === 0;
+    }
+}
+
+// Rest of your existing functions...
+function bulkDeleteVoters() {
+    const selectedVoters = Array.from(document.querySelectorAll('.voter-select:checked')).map(cb => cb.value);
+    if (!selectedVoters.length) return;
+
+    if (confirm(`Are you sure you want to delete ${selectedVoters.length} selected voter(s)?`)) {
+        fetch('{% url "admin:bulk-delete-voters" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ voter_ids: selectedVoters })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+    }
+}
+
+function toggleAllVoters() {
+    const selectAll = document.getElementById('select-all');
+    document.querySelectorAll('.voter-select').forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+    updateBulkDeleteButton();
+}
+
+function deleteVoter(id) {
+    if (confirm('Are you sure you want to delete this voter?')) {
+        fetch(`{% url 'admin:voter-delete' pk=0 %}`.replace('0', id), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+    }
+}
+
+// Function to open edit modal and populate with voter data
+async function editVoter(id) {
+    try {
+        // Fetch voter data
+        const response = await fetch(`{% url 'admin:voter-get' pk=0 %}`.replace('0', id));
+        const result = await response.json();
+
+        if (result.success) {
+            const voter = result.data;
+
+            // Populate the edit form
+            document.getElementById('edit-voter-id').value = id;
+
+            {% for field in excel_fields %}
+            const field{{ forloop.counter }} = document.getElementById('edit-{{ field|slugify }}');
+            if (field{{ forloop.counter }}) {
+                field{{ forloop.counter }}.value = voter['{{ field }}'] || '';
+            }
+            {% endfor %}
+
+            // Open the modal
+            openEditModal();
+        } else {
+            alert('Error loading voter data: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Error fetching voter data:', error);
+        alert('Error loading voter data: ' + error.message);
+    }
+}
+
+// Function to open edit modal
+function openEditModal() {
+    const modal = document.getElementById('edit-voter-modal');
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+// Function to close edit modal
+function closeEditModal() {
+    const modal = document.getElementById('edit-voter-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        // Reset form
+        const form = document.getElementById('edit-voter-form');
+        if (form) {
+            form.reset();
+        }
+    }
+}
+    // Modal functions
+    function openModal() {
+        console.log('Opening modal...'); // Debug line
+        const modal = document.getElementById('add-voter-modal');
+        console.log('Modal element:', modal); // Debug line
+        if (modal) {
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            console.log('Modal opened successfully'); // Debug line
+        } else {
+            console.error('Modal element not found!'); // Debug line
+        }
+    }
+
+    function closeModal() {
+        console.log('Closing modal...'); // Debug line
+        const modal = document.getElementById('add-voter-modal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            // Reset form
+            const form = document.getElementById('add-voter-form');
+            if (form) {
+                form.reset();
+            }
+        }
+    }
+
+    window.onclick = function(event) {
+        const addModal = document.getElementById('add-voter-modal');
+        const editModal = document.getElementById('edit-voter-modal');
+
+        if (event.target === addModal) {
+            closeModal();
+        }
+        if (event.target === editModal) {
+            closeEditModal();
+        }
+    }
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle edit form submission
+        const editVoterForm = document.getElementById('edit-voter-form');
+        if (editVoterForm) {
+            editVoterForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                // Get form data
+                const formData = new FormData(this);
+                const data = {};
+                formData.forEach((value, key) => {
+                    data[key] = value;
+                });
+
+                const voterId = data.voter_id;
+                delete data.voter_id; // Remove voter_id from data as it's not a field to update
+
+                // Submit to server
+                fetch(`{% url "admin:voter-edit" pk=0 %}`.replace('0', voterId), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert('Voter updated successfully!');
+                        closeEditModal();
+                        location.reload(); // Refresh the page to show updated data
+                    } else {
+                        alert('Error: ' + (result.error || 'Failed to update voter'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error updating voter: ' + error.message);
+                });
+            });
+        }
+        const addVoterForm = document.getElementById('add-voter-form');
+        if (addVoterForm) {
+            addVoterForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                // Get form data
+                const formData = new FormData(this);
+                const data = {};
+                formData.forEach((value, key) => {
+                    data[key] = value;
+                });
+
+                // Submit to server - Use the correct URL pattern
+                fetch('/admin/voters/voter/add-voter/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        alert('Voter added successfully!');
+                        closeModal();
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (result.message || 'Failed to add voter'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error adding voter: ' + error.message);
+                });
+            });
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeModal();
+        closeEditModal();
+    }
+});
+</script>
+
+
+{% endblock %}

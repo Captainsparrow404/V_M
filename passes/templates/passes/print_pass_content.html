@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pass Content</title>
+    <style>
+        html, body {
+            height: 100%;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: #fff;
+        }
+        .print-container {
+            width: 700px;
+            margin: 60px auto 60px auto;
+            padding: 60px 60px 40px 60px;
+            background: #fff;
+            min-height: 900px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-sizing: border-box;
+            border-radius: 8px;
+        }
+        .licence-no {
+            text-align: right;
+            text-decoration: underline;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+        .mid-heading {
+            text-align: center;
+            text-decoration: underline;
+            margin-bottom: 30px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .content-main {
+            margin: 30px 0 40px 0;
+            font-size: 1.1em;
+        }
+        .content-main p {
+            margin: 18px 0;
+            text-align: left;
+        }
+        .signature-block {
+            margin-top: 60px;
+            text-align: right;
+        }
+        .signature-block .sincerely {
+            margin-bottom: 40px;
+        }
+        @media print {
+            body {
+                background: #fff;
+            }
+            .no-print {
+                display: none;
+            }
+            .print-container {
+                box-shadow: none;
+                border: none;
+                margin: 0 auto;
+                padding: 0 40px;
+                width: 90vw;
+                min-height: 90vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="text-align: right; margin: 20px 60px 0 0;">
+        <button onclick="window.print()">Print</button>
+    </div>
+    <div class="print-container">
+        <div class="licence-no">
+            Lr. No: {{ letter_no }}
+        </div>
+        <div class="mid-heading">
+            EXECUTIVE OFFICER<br>
+            {{ temple }}
+        </div>
+        <div class="content-main">
+            <p>
+                I would like to inform that Sri. <strong>{{ name }}</strong>,
+                Mobile. No: <strong>{{ phone }}</strong>, Aadhar Card no: <strong>{{ id_number }}</strong>
+                along with {{ num_persons }} member{{ num_persons|pluralize }} will arrive to <strong>{{ temple }}</strong> on <strong>{{ visit_date }}</strong>.
+            </p>
+            {% if accommodation_date %}
+            <p>
+                Accommodation has been arranged for <strong>{{ accommodation_date }}</strong>.
+            </p>
+            {% endif %}
+            {% if darshan_date and darshan_type %}
+            <p>
+                <strong>{{ darshan_type|upper }} DARSHAN</strong> has been arranged on <strong>{{ darshan_date }}</strong>.
+            </p>
+            {% endif %}
+        </div>
+        <div class="signature-block">
+            <div class="sincerely">Sincerely,</div>
+            <div><strong>KESINENI SIVANATH (CHINNI)</strong></div>
+        </div>
+    </div>
+</body>
+</html> 

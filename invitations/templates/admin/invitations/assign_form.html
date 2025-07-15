@@ -1,0 +1,83 @@
+<div class="modal-content">
+    <h2>Assign Persons to Invitation</h2>
+
+    <div>
+        <label for="mandal-filter-modal">Mandal:</label>
+        <select name="mandal-filter" id="mandal-filter-modal">
+            <option value="">All</option>
+            {% for mandal in mandals %}
+                <option value="{{ mandal }}">{{ mandal }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="area-filter-modal">Area:</label>
+        <select name="area-filter" id="area-filter-modal">
+            <option value="">All</option>
+            {# Options will be populated dynamically by JS #}
+        </select>
+    </div>
+
+    <form method="post" id="assign-person-form">
+        {% csrf_token %}
+
+        <input type="hidden" name="invitation_id" value="{{ invitation.id }}">
+
+        <h3>Persons:</h3>
+        <div id="person-list-container">
+            {% for person in persons %}
+                <label>
+                    <input type="checkbox" name="persons[]" value="{{ person.id }}" data-mandal="{{ person.mandal }}" data-area="{{ person.area }}">
+                    {{ person.name }} ({{ person.mandal }} - {{ person.area }})
+                </label><br>
+            {% endfor %}
+        </div>
+
+        <h3>Gift Handler:</h3>
+        <select name="gift_handler" required>
+            <option value="">-- Select a Gift Handler --</option>
+            {% for person in persons %}
+                <option value="{{ person.id }}">{{ person.name }}</option>
+            {% endfor %}
+        </select>
+
+        <br><br>
+
+        <button type="submit">Assign Selected</button>
+        <button type="button" class="close-modal">Cancel</button>
+    </form>
+</div>
+
+<style>
+    /* Basic Modal Styling */
+    .modal-content {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        max-width: 600px;
+        width: 90%;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        position: relative;
+    }
+
+    .close-modal {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        cursor: pointer;
+        font-size: 1.2em;
+        border: none;
+        background: none;
+    }
+
+    #person-list-container {
+        max-height: 200px; /* Limit height and add scroll */
+        overflow-y: auto;
+        border: 1px solid #eee;
+        padding: 10px;
+        margin-bottom: 15px;
+    }
+    #person-list-container label {
+        display: block; /* Each person on a new line */
+        margin-bottom: 5px;
+    }
+</style> 

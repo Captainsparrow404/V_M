@@ -1,0 +1,193 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block extrastyle %}
+<style>
+    /* Styling for horizontal filters */
+    .horizontal-filters {
+        background-color: #eef; /* Light blue background */
+        padding: 15px 20px; /* Add padding around filters */
+        margin-bottom: 25px; /* Space between filters and table */
+        border: 1px solid #ccd; /* Light border */
+        border-radius: 5px;
+        /* Removed overflow: hidden; */
+    }
+    .horizontal-filters form {
+        margin-bottom: 0; /* Remove default form margin */
+        display: flex; /* Use flexbox for alignment */
+        align-items: center;
+    }
+    .horizontal-filters .form-group {
+        margin-right: 20px; /* Increase space between filter groups */
+        display: flex; /* Align label and select */
+        align-items: center;
+    }
+    .horizontal-filters label {
+        margin-right: 8px; /* Space between label and select */
+        font-weight: bold;
+    }
+     .horizontal-filters select, .horizontal-filters button, .horizontal-filters a.button {
+        padding: 6px 10px; /* Adjust padding */
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1em; /* Standardize font size */
+     }
+     .horizontal-filters button[type="submit"] {
+        background-color: #007bff; /* Blue background for Filter button */
+        color: white; /* White text */
+        border-color: #007bff;
+        margin-right: 10px; /* Space between Filter and Clear buttons */
+     }
+      .horizontal-filters button[type="submit"]:hover {
+        background-color: #0056b3;
+        border-color: #004085;
+     }
+     .horizontal-filters a.button {
+        background-color: #f8f9fa; /* Light background for Clear button */
+        color: #333; /* Dark text */
+        text-decoration: none; /* Remove underline */
+        display: inline-block;
+        border-color: #ccc;
+     }
+      .horizontal-filters a.button:hover {
+        background-color: #e2e6ea; /* Lighter grey on hover */
+        border-color: #ccc; /* Keep border color */
+     }
+
+    /* Table styling */
+     #result_list {
+        width: 100%; /* Make the table fill the container width */
+        border-collapse: collapse; /* Optional: for cleaner borders */
+        margin: 0; /* Explicitly remove margin */
+        padding: 0; /* Explicitly remove padding */
+        box-sizing: border-box; /* Include padding and border in the element's total width and height */
+        display: block; /* Try setting display to block */
+        overflow-x: auto; /* Add horizontal scroll if content overflows */
+     }
+
+     #result_list th {
+        white-space: nowrap;
+        font-size: 0.9em; /* Adjust font size as needed */
+        padding: 7px 10px; /* Further adjusted padding */
+        text-align: left; /* Align headers to the left */
+        border-bottom: 2px solid #dee2e6; /* Add border for separation */
+     }
+    #result_list td {
+         padding: 7px 10px; /* Further adjusted padding */
+         vertical-align: top;
+         text-align: left; /* Align data to the left */
+         border-bottom: 1px solid #dee2e6; /* Add border for separation */
+    }
+     #result_list thead th {
+        /* Specific style for header row to ensure proper spacing */
+        padding-top: 8px; /* Further reduced top padding */
+        padding-bottom: 8px; /* Further reduced bottom padding */
+    }
+    #result_list tbody tr:last-child td {
+        border-bottom: none; /* Remove border for the last row */
+    }
+
+    /* Adjust width for specific columns if necessary */
+     .field-id {
+        width: 60px;
+     }
+      .field-phone_number {
+        width: 120px;
+      }
+      .field-email {
+         width: 150px;
+      }
+     .field-address {
+        max-width: 200px; /* Limit width for these columns */
+        overflow: hidden;
+        text-overflow: ellipsis;
+     }
+
+    /* Style for the custom Add button */
+    .custom-add-button {
+        background-color: #4CAF50; /* Green background */
+        color: white !important; /* White text - Use !important to override potential default admin styles */
+        padding: 10px 15px; /* Padding */
+        text-align: center;
+        text-decoration: none; /* Remove underline */
+        font-size: 14px; /* Font size */
+        border-radius: 5px; /* Rounded corners */
+        margin-bottom: 15px; /* Space below the button */
+        float: right; /* Float to the right */
+    }
+    .custom-add-button:hover {
+        background-color: #45a049; /* Darker green on hover */
+        color: white !important; /* Keep text white on hover */
+    }
+
+</style>
+{% endblock %}
+
+{% block object-tools %}
+{# Commenting out the standard object-tools block for now #}
+{# {{ block.super }} #}
+{# <li>
+    {% url 'admin:invitations_person_add' as add_url %}
+    <a href="{% add_preserved_filters add_url is_popup to_field %}" class="addlink"> {# Use Django admin's addlink class #}
+        {% blocktrans with cl.opts.verbose_name_plural as verbose_name %}Add {{ verbose_name|slice:":-1" }}{% endblocktrans %} {# Use verbose_name_plural and slice to get singular #}
+    </a>
+</li> #}
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+
+    {# Custom Add Person button #}
+    <a href="{% url 'admin:invitations_person_add' %}" class="custom-add-button">+ Add Person</a>
+
+{% block object-tools-items %}{% endblock %} {# Keep this block for any default items that might appear here #}
+
+<div class="horizontal-filters">
+    <form method="get" action="{% url 'admin:invitations_person_changelist' %}">
+        <div class="form-group">
+            <label for="assembly-filter">Assembly:</label>
+            <select name="assembly" id="assembly-filter">
+                <option value="">All</option>
+                {% for assembly in horizontal_filters.assemblies %}
+                    <option value="{{ assembly }}" {% if assembly == horizontal_filters.current_assembly %}selected{% endif %}>{{ assembly }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="mandal-filter">Mandal:</label>
+            <select name="mandal" id="mandal-filter">
+                <option value="">All</option>
+                {% for mandal in horizontal_filters.mandals %}
+                    <option value="{{ mandal }}" {% if mandal == horizontal_filters.current_mandal %}selected{% endif %}>{{ mandal }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="area-filter">Area:</label>
+            <select name="area" id="area-filter">
+                <option value="">All</option>
+                {% for area in horizontal_filters.areas %}
+                    <option value="{{ area }}" {% if area == horizontal_filters.current_area %}selected{% endif %}>{{ area }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-secondary w-100">Filter</button> {# Changed to btn-secondary #}
+         <a href="{% url 'admin:invitations_person_changelist' %}" class="btn btn-secondary w-100">Clear Filters</a> {# Changed to btn-secondary #}
+    </form>
+</div>
+
+{% block result_list %}
+{{ block.super }}
+{% endblock %}
+
+</div>
+{% endblock %}
+
+{# We don't need to render the default pagination #}
+{% block pagination %}{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+{# Add any specific scripts for this change_list here #}
+{% endblock %} 

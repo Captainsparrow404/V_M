@@ -1,0 +1,51 @@
+{% extends "admin/change_list.html" %}
+{% load admin_list static %}
+
+{% block content_title %}
+<div class="filters-bar">
+    <form method="get">
+        <label for="is_featured">Featured:</label>
+        <select id="is_featured" name="is_featured">
+            <option value="">All</option>
+            <option value="1" {% if request.GET.is_featured == "1" %}selected{% endif %}>Yes</option>
+            <option value="0" {% if request.GET.is_featured == "0" %}selected{% endif %}>No</option>
+        </select>
+
+        <label for="is_published">Published:</label>
+        <select id="is_published" name="is_published">
+            <option value="">All</option>
+            <option value="1" {% if request.GET.is_published == "1" %}selected{% endif %}>Yes</option>
+            <option value="0" {% if request.GET.is_published == "0" %}selected{% endif %}>No</option>
+        </select>
+
+        <label for="is_archived">Archived:</label>
+        <select id="is_archived" name="is_archived">
+            <option value="">All</option>
+            <option value="1" {% if request.GET.is_archived == "1" %}selected{% endif %}>Yes</option>
+            <option value="0" {% if request.GET.is_archived == "0" %}selected{% endif %}>No</option>
+        </select>
+
+        <button type="submit">Apply</button>
+        <a href="." style="margin-left: 10px;">Clear</a>
+    </form>
+</div>
+{% endblock %}
+
+{% block content %}
+{{ block.super }}
+<style>
+    .filters-bar {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .filters-bar label {
+        margin-right: 5px;
+    }
+
+    .filters-bar select {
+        padding: 5px;
+    }
+</style>
+{% endblock %}

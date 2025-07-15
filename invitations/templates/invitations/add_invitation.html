@@ -1,0 +1,14 @@
+{% extends 'invitations/base_invitations.html' %}
+{% block content %}
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Add Invitation</h2>
+        <a href="{% url 'invitations_list' %}" class="btn btn-secondary">Back to Invitations</a>
+    </div>
+    <form method="post" enctype="multipart/form-data" class="card p-4 shadow-sm">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
+{% endblock %} 

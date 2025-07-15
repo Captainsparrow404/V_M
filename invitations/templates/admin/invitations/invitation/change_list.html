@@ -1,0 +1,310 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block extrastyle %}
+<style>
+    /* Styling for horizontal filters */
+    .horizontal-filters {
+        background-color: #eef; /* Light blue background */
+        padding: 15px 20px; /* Add padding around filters */
+        margin-bottom: 25px; /* Space between filters and table */
+        border: 1px solid #ccd; /* Light border */
+        border-radius: 5px;
+    }
+    .horizontal-filters form {
+        margin-bottom: 0; /* Remove default form margin */
+        display: flex; /* Use flexbox for alignment */
+        align-items: center;
+    }
+    .horizontal-filters .form-group {
+        margin-right: 20px; /* Increase space between filter groups */
+        display: flex; /* Align label and select */
+        align-items: center;
+    }
+    .horizontal-filters label {
+        margin-right: 8px; /* Space between label and select */
+        font-weight: bold;
+    }
+     .horizontal-filters select, .horizontal-filters button, .horizontal-filters a.button {
+        padding: 6px 10px; /* Adjust padding */
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1em; /* Standardize font size */
+     }
+     .horizontal-filters button[type="submit"] {
+        background-color: #007bff; /* Blue background for Filter button */
+        color: white;
+        border-color: #007bff;
+        margin-right: 10px; /* Space between Filter and Clear buttons */
+     }
+      .horizontal-filters button[type="submit"]:hover {
+        background-color: #0056b3;
+        border-color: #004085;
+     }
+     .horizontal-filters a.button {
+        background-color: #f8f9fa; /* Light background for Clear button */
+        color: #333;
+        text-decoration: none;
+        display: inline-block;
+        border-color: #ccc;
+     }
+      .horizontal-filters a.button:hover {
+        background-color: #e2e6ea;
+        border-color: #ccc;
+     }
+
+    /* Table styling */
+     #result_list {
+        width: 100%; /* Make the table fill the container width */
+        border-collapse: collapse; /* Optional: for cleaner borders */
+        margin: 0; /* Explicitly remove margin */
+        padding: 0; /* Explicitly remove padding */
+        box-sizing: border-box; /* Include padding and border in the element's total width and height */
+        display: block; /* Try setting display to block */
+        overflow-x: auto; /* Add horizontal scroll if content overflows */
+    }
+
+     #result_list th {
+        white-space: nowrap;
+        font-size: 0.9em; /* Adjust font size as needed */
+        padding: 7px 10px; /* Further adjusted padding */
+        text-align: left; /* Align headers to the left */
+        border-bottom: 2px solid #dee2e6; /* Add border for separation */
+     }
+    #result_list td {
+         padding: 7px 10px; /* Further adjusted padding */
+         vertical-align: top;
+         text-align: left; /* Align data to the left */
+         border-bottom: 1px solid #dee2e6; /* Add border for separation */
+    }
+     #result_list thead th {
+        /* Specific style for header row to ensure proper spacing */
+        padding-top: 8px; /* Further reduced top padding */
+        padding-bottom: 8px; /* Further reduced bottom padding */
+    }
+    #result_list tbody tr:last-child td {
+        border-bottom: none; /* Remove border for the last row */
+    }
+
+    /* Adjust width for specific columns if necessary */
+     .field-id {
+        width: 60px;
+     }
+     .field-mobile_number {
+        width: 130px;
+     }
+     .field-event_date {
+         width: 110px;
+     }
+     .field-created_at {
+         width: 160px;
+     }
+      .field-action {
+          width: 100px;
+          text-align: center;
+      }
+       .field-invitation_type {
+          width: 120px;
+      }
+      .field-invitation_name {
+          width: 150px;
+      }
+
+    /* Basic Modal Styling (can be refined) */
+    #assign-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000; /* Ensure it's on top of other elements */
+    }
+
+    .modal-content {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        max-width: 600px;
+        width: 90%;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        position: relative;
+    }
+
+    .close-modal {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        cursor: pointer;
+        font-size: 1.2em;
+        border: none;
+        background: none;
+    }
+
+    #person-list-container {
+        max-height: 200px; /* Limit height and add scroll */
+        overflow-y: auto;
+        border: 1px solid #eee;
+        padding: 10px;
+        margin-bottom: 15px;
+    }
+    #person-list-container label {
+        display: block; /* Each person on a new line */
+        margin-bottom: 5px;
+    }
+
+    /* Modal container styling */
+    #assign-modal-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    /* Style for the custom Add button */
+    .custom-add-button {
+        background-color: #4CAF50; /* Green background */
+        color: white !important; /* White text - Use !important to override potential default admin styles */
+        padding: 10px 15px; /* Padding */
+        text-align: center;
+        text-decoration: none; /* Remove underline */
+        font-size: 14px; /* Font size */
+        border-radius: 5px; /* Rounded corners */
+        margin-bottom: 15px; /* Space below the button */
+        float: right; /* Float to the right */
+    }
+    .custom-add-button:hover {
+        background-color: #45a049; /* Darker green on hover */
+        color: white !important; /* Keep text white on hover */
+    }
+
+</style>
+{% endblock %}
+
+{% block object-tools %}
+{# Commenting out the standard object-tools block for now #}
+{# {{ block.super }} #}
+{# <li>
+    {% url 'admin:invitations_invitation_add' as add_url %}
+    <a href="{% add_preserved_filters add_url is_popup to_field %}" class="addlink"> {# Use Django admin's addlink class #}
+        {% blocktrans with cl.opts.verbose_name_plural as verbose_name %}Add {{ verbose_name|slice:":-1" }}{% endblocktrans %} {# Use verbose_name_plural and slice to get singular #}
+    </a>
+</li> #}
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+
+    {# Custom Add Invitation button #}
+    <a href="{% url 'admin:invitations_invitation_add' %}" class="custom-add-button">+ Add Invitation</a>
+
+{% block object-tools-items %}{% endblock %} {# Keep this block for any default items that might appear here #}
+
+<div class="horizontal-filters">
+    <form method="get" action="{% url 'admin:invitations_invitation_changelist' %}">
+        <div class="form-group">
+            <label for="mandal-filter">Mandal:</label>
+            <select name="mandal" id="mandal-filter">
+                <option value="">All</option>
+                {% for mandal in horizontal_filters.mandals %}
+                    <option value="{{ mandal }}" {% if mandal == horizontal_filters.current_mandal %}selected{% endif %}>{{ mandal }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="area-filter">Area:</label>
+            <select name="area" id="area-filter">
+                <option value="">All</option>
+                {% for area in horizontal_filters.areas %}
+                    <option value="{{ area }}" {% if area == horizontal_filters.current_area %}selected{% endif %}>{{ area }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit">Filter</button>
+         <a href="{% url 'admin:invitations_invitation_changelist' %}" class="button">Clear Filters</a>
+    </form>
+</div>
+
+<form id="changelist-form" method="post" action="" novalidate>
+{% csrf_token %}
+
+{% block result_list %}
+<div class="results">
+    <table id="result_list">
+        <thead>
+            <tr>
+                <th class="action-checkbox-column"><input type="checkbox" id="action-toggle"></th>
+                <th>S. No.</th>
+                <th>Name</th>
+                <th>Invitation Type</th>
+                <th>Event Date</th>
+                <th>Mobile Number</th>
+                <th>Mandal</th>
+                <th>Address/Venue</th>
+                <th>Area</th>
+                <th>File</th>
+                <th>Created At</th>
+                <th>Action</th>
+                <th></th> {# Column for Edit link #}
+            </tr>
+        </thead>
+        <tbody>
+            {% for invitation in cl.result_list %}
+            <tr class="{% cycle 'row1' 'row2' %}">
+                <td class="action-checkbox"><input type="checkbox" name="_selected_action" value="{{ invitation.pk }}"></td>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ invitation.name }}</td>
+                <td>{{ invitation.invitation_type|default_if_none:"-" }}</td>
+                <td>{{ invitation.event_date|default_if_none:"-" }}</td>
+                <td>{{ invitation.mobile_number }}</td>
+                <td>{{ invitation.mandal }}</td>
+                <td>{{ invitation.address_venue }}</td>
+                <td>{{ invitation.area }}</td>
+                <td>
+                    {% if invitation.file_upload %}
+                        <a href="{{ invitation.file_upload.url }}" target="_blank">Download</a>
+                    {% else %}-{% endif %}
+                </td>
+                 <td>{{ invitation.created_at }}</td>
+                <td>
+                    {# The Assign button #}
+                    <button type="button" class="button assign-btn" data-id="{{ invitation.id }}">Assign</button>
+                </td>
+                <td><a href="{% url 'admin:invitations_invitation_change' invitation.id %}" class="admin-edit-link">Edit</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="13" class="text-center">No invitations found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+</form>
+
+{# Modal container - content will be loaded here via AJAX #}
+<div id="assign-modal-container" style="display: none;"></div>
+
+</div>
+{% endblock %}
+
+{% block pagination %}{% endblock %}
+
+{% block extrabody %}
+    {# Explicitly include the static JavaScript file #}
+    <script src="{% static 'invitations/js/assign_modal.js' %}"></script>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+{% endblock %} 

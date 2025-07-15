@@ -1,0 +1,66 @@
+{% extends "rest_framework/base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>{{ title }}</h2>
+            
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Event Details</h3>
+                </div>
+                <div class="panel-body">
+                    <dl class="dl-horizontal">
+                        <dt>Title</dt>
+                        <dd>{{ event.title }}</dd>
+                        
+                        <dt>Description</dt>
+                        <dd>{{ event.description|safe }}</dd>
+                        
+                        <dt>Date</dt>
+                        <dd>{{ event.event_date }}</dd>
+                        
+                        <dt>Location</dt>
+                        <dd>{{ event.location_name }}</dd>
+                        
+                        <dt>Address</dt>
+                        <dd>{{ event.address }}</dd>
+                        
+                        {% if event.featured_image %}
+                        <dt>Image</dt>
+                        <dd><img src="{{ event.featured_image }}" alt="{{ event.title }}" class="img-responsive"></dd>
+                        {% endif %}
+                        
+                        {% if event.event_video_url %}
+                        <dt>Video</dt>
+                        <dd><a href="{{ event.event_video_url }}" target="_blank">Watch Video</a></dd>
+                        {% endif %}
+                    </dl>
+                    
+                    {% if serializer %}
+                    <div class="well">
+                        <h4>Update Event</h4>
+                        <form action="/api/events/{{ event.id }}/" method="PUT" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            {% for field in serializer %}
+                            <div class="form-group">
+                                {{ field.label_tag }}
+                                {{ field }}
+                                {% if field.help_text %}
+                                <p class="help-block">{{ field.help_text }}</p>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            <button type="submit" class="btn btn-primary">Update Event</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <a href="/api/events/" class="btn btn-default">Back to Events</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

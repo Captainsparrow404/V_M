@@ -1,0 +1,46 @@
+{% extends 'invitations/base_invitations.html' %}
+{% block content %}
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Assigning Persons</h2>
+        <a href="{% url 'add_person' %}" class="btn btn-primary">+ Add Person</a>
+    </div>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-success">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+    <table class="table table-bordered table-hover">
+        <thead class="thead-light">
+            <tr>
+                <th>S. No.</th>
+                <th>Name</th>
+                <th>Phone Number</th>
+                <th>Email</th>
+                <th>Address</th>
+                <th>Assembly</th>
+                <th>Mandal</th>
+                <th>Area</th>
+                <th>Gift</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for person in persons %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ person.name }}</td>
+                <td>{{ person.phone_number }}</td>
+                <td>{{ person.email }}</td>
+                <td>{{ person.address }}</td>
+                <td>{{ person.assembly }}</td>
+                <td>{{ person.mandal }}</td>
+                <td>{{ person.area }}</td>
+                <td><input type="checkbox" disabled></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="9" class="text-center">No persons found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %} 

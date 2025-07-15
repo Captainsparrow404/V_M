@@ -1,0 +1,113 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block filters %}{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static 'admin/css/custom_admin.css' %}">
+<style>
+    /* Additional overrides if needed */
+    #content-main {
+        float: none !important;
+        width: 100% !important;
+    }
+    
+    .filtered #changelist-form {
+        margin-right: 0 !important;
+        width: 100% !important;
+    }
+    
+    #changelist.filtered {
+        margin-right: 0 !important;
+        width: 100% !important;
+    }
+    
+    /* Hide any remaining right-side filters */
+    .changelist-filter-right {
+        display: none !important;
+    }
+
+    /* Force filters to top */
+    #changelist-filter {
+        position: static !important;
+        float: none !important;
+        width: 100% !important;
+        margin-right: 0 !important;
+        background: #f8f8f8 !important;
+        border-bottom: 1px solid #eee;
+    }
+
+    /* Remove right side positioning */
+    .change-list .filtered #changelist-filter {
+        position: static !important;
+        width: 100% !important;
+        right: 0 !important;
+        background: #f8f8f8 !important;
+    }
+
+    /* Force full width content */
+    #changelist {
+        width: 100% !important;
+        margin-right: 0 !important;
+    }
+
+    .change-list .filtered .results, 
+    .change-list .filtered .paginator,
+    .filtered #toolbar,
+    .filtered .actions,
+    .filtered div.xfull {
+        margin-right: 0 !important;
+        width: auto !important;
+    }
+
+    /* Make filters display horizontally */
+    #changelist-filter h2 {
+        display: none !important;
+    }
+
+    #changelist-filter h3 {
+        display: inline-block !important;
+        margin-right: 10px !important;
+    }
+
+    #changelist-filter ul {
+        display: inline-block !important;
+        margin-right: 20px !important;
+    }
+
+    #changelist-filter li {
+        display: inline-block !important;
+        margin-right: 10px !important;
+    }
+
+    /* Only target the events changelist */
+    body.app-events.model-event #changelist-filter {
+        position: relative !important;
+        float: none !important;
+        width: 100% !important;
+        margin-right: 0 !important;
+    }
+    
+    body.app-events.model-event #changelist {
+        margin-right: 0 !important;
+        width: 100% !important;
+    }
+    
+    body.app-events.model-event .change-list .filtered .results {
+        margin-right: 0 !important;
+        width: 100% !important;
+    }
+
+    /* Hide the right side filters completely */
+    #changelist-filter {
+        display: none !important;
+    }
+    
+    /* Make the results take full width */
+    #changelist-form .results {
+        width: 100% !important;
+        margin-right: 0 !important;
+    }
+</style>
+{% endblock %} 

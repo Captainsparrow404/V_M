@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Invitation Details{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Invitation Details</h2>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">{{ invitation.name }}</h5>
+            <p class="card-text mb-1"><strong>Mobile Number:</strong> {{ invitation.mobile_number }}</p>
+            <p class="card-text mb-1"><strong>Mandal:</strong> {{ invitation.mandal }}</p>
+            <p class="card-text mb-1"><strong>Address/Venue:</strong> {{ invitation.address_venue }}</p>
+            <p class="card-text mb-1"><strong>Area:</strong> {{ invitation.area }}</p>
+            <p class="card-text mb-1"><strong>File:</strong> {% if invitation.file_upload %}<a href="{{ invitation.file_upload.url }}" target="_blank">Download</a>{% else %}-{% endif %}</p>
+            <a href="{% url 'admin:invitations_invitation_assign_persons' invitation.id %}" class="btn btn-success btn-sm mt-2">Assign/Modify Persons</a>
+        </div>
+    </div>
+
+    <h4>Assigned Persons</h4>
+    <table class="table table-bordered table-hover">
+        <thead class="thead-light">
+            <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Assembly</th>
+                <th>Mandal</th>
+                <th>Area</th>
+                <th>Gift Handler</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for assignment in assignments %}
+            <tr {% if assignment.is_gift_handler %}style="background:#e6ffe6;"{% endif %}>
+                <td>{{ assignment.person.name }}</td>
+                <td>{{ assignment.person.phone_number }}</td>
+                <td>{{ assignment.person.email }}</td>
+                <td>{{ assignment.person.assembly }}</td>
+                <td>{{ assignment.person.mandal }}</td>
+                <td>{{ assignment.person.area }}</td>
+                <td>
+                    {% if assignment.is_gift_handler %}
+                        <span class="badge bg-success">Gift Handler</span>
+                    {% else %}-{% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center">No persons assigned.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{% url 'admin:invitations_invitation_changelist' %}" class="btn btn-secondary mt-3">Back to Invitations</a>
+</div>
+
+<style>
+    .badge.bg-success {
+        background-color: #28a745;
+        color: #fff;
+        font-size: 0.95em;
+        padding: 0.4em 0.7em;
+        border-radius: 0.4em;
+    }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Change the header text and link using JavaScript
+    const invitationsListUrl = "{% url 'admin:invitations_invitation_changelist' %}";
+    document.addEventListener('DOMContentLoaded', function() {
+        const brandElement = document.querySelector('.navbar-brand');
+        if (brandElement) {
+            brandElement.textContent = 'Invitation Management System';
+        }
+        const requestPassLink = document.querySelector('.navbar-nav .nav-item:nth-child(1) .nav-link');
+        if (requestPassLink) {
+            requestPassLink.textContent = 'Invitations List';
+            requestPassLink.href = invitationsListUrl; // Use the defined variable
+        }
+    });
+</script>
+{% endblock %} 

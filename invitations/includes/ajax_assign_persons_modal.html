@@ -1,0 +1,74 @@
+{% load i18n %}
+
+<h3>Assign Persons for {{ invitation.name }}</h3>
+
+<form id="ajax-assignment-form" method="post" action="{% url 'admin:invitations_invitation_ajax_assign_persons' invitation.id %}">
+    {% csrf_token %}
+
+    <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;">
+        <table class="person-list-table" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="text-align: left; padding: 5px;">Select</th>
+                    <th style="text-align: left; padding: 5px;">Name</th>
+                    <th style="text-align: left; padding: 5px;">Gift Handler</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for person in persons %}
+                    <tr>
+                        <td style="padding: 5px;">
+                            <input type="checkbox" name="person_ids" value="{{ person.id }}" {% if person.id in assigned_person_ids %}checked{% endif %}>
+                        </td>
+                        <td style="padding: 5px;">{{ person.name }}</td>
+                        <td style="padding: 5px;">
+                            <input type="radio" name="gift_handler_id" value="{{ person.id }}" {% if person.id == gift_handler_id %}checked{% endif %} {% if person.id not in assigned_person_ids %}disabled{% endif %}> {# Disable if not selected #}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="3">No persons available.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div style="margin-top: 20px; text-align: right;">
+        <button type="button" class="button cancel-assign-modal">Cancel</button>
+        <button type="submit" class="button default">Save Assignments</button>
+    </div>
+</form>
+
+<script>
+    // Update radio button disabled state based on checkbox
+    document.querySelectorAll('input[name="person_ids"]').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const personId = this.value;
+            const giftHandlerRadio = document.querySelector('input[name="gift_handler_id"][value="' + personId + '"]');
+            if (giftHandlerRadio) {
+                giftHandlerRadio.disabled = !this.checked;
+                if (!this.checked && giftHandlerRadio.checked) {
+                    giftHandlerRadio.checked = false;
+                }
+            }
+        });
+    });
+
+    // Ensure only one gift handler can be selected at a time
+    document.querySelectorAll('input[name="gift_handler_id"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.checked) {
+                document.querySelectorAll('input[name="gift_handler_id"]').forEach(otherRadio => {
+                    if (otherRadio !== this) {
+                        otherRadio.checked = false;
+                    }
+                });
+            }
+        });
+    });
+
+     // Handle Cancel button
+    document.querySelector('.cancel-assign-modal').addEventListener('click', function() {
+        document.getElementById("assignModal").style.display = "none";
+    });
+
+</script> 

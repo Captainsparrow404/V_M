@@ -1,0 +1,24 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block object-tools %}
+{% if change %}
+<div class="object-tools" style="display: flex; gap: 10px; margin-bottom: 20px;">
+    {% url 'admin:event-preview' original.pk as preview_url %}
+    {% if preview_url %}
+    <a href="{{ preview_url }}" class="button" target="_blank" style="margin: 0;">
+        Preview
+    </a>
+    {% endif %}
+    
+    <a href="{% url 'admin:events_event_change' original.pk %}" class="button" style="margin: 0;">
+        Edit
+    </a>
+    
+    <a href="#" class="button archive-btn" style="margin: 0;">
+        Archive
+    </a>
+</div>
+{% endif %}
+{{ block.super }}
+{% endblock %} 

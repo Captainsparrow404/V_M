@@ -1,0 +1,70 @@
+1. Pass Request APIs:
+   - GET /passes/
+     Description: View pass request form
+     Method: GET
+     Access: Public
+
+   - POST /passes/
+     Description: Submit a new pass request
+     Method: POST
+     Access: Public
+
+2. REST API Endpoints:
+   - /api/passes/
+     Methods Available:
+     a. GET
+        Description: List all passes (with optional status filter)
+        Access: Authenticated Admin Users
+        Query Parameters:
+          - status: Filter passes by status (default: 'PENDING')
+
+     b. POST
+        Description: Create a new pass
+        Access: Authenticated Admin Users
+        Body: Pass details in JSON format
+
+     c. PUT/PATCH
+        Description: Update an existing pass (Full/Partial update)
+        Access: Authenticated Admin Users
+        URL Format: /api/passes/{id}/
+        Body: Updated pass details
+
+     d. DELETE
+        Description: Delete a pass
+        Access: Authenticated Admin Users
+        URL Format: /api/passes/{id}/
+
+   - GET /api/passes/pending/
+     Description: List all pending passes
+     Method: GET
+     Access: Authenticated Admin Users
+
+   - GET /api/passes/approved/
+     Description: List all approved passes
+     Method: GET
+     Access: Authenticated Admin Users
+
+   - GET /api/passes/rejected/
+     Description: List all rejected passes
+     Method: GET
+     Access: Authenticated Admin Users
+
+   - POST /api/passes/{pk}/approve/
+     Description: Approve a specific pass request
+     Method: POST
+     Access: Authenticated Admin Users
+     Parameters: pk (Pass ID)
+
+   - POST /api/passes/{pk}/reject/
+     Description: Reject a specific pass request
+     Method: POST
+     Access: Authenticated Admin Users
+     Parameters: pk (Pass ID)
+
+Notes:
+- All REST API endpoints require authentication
+- Admin privileges are required for all REST API endpoints
+- The APIs use Django REST framework's viewsets and router system
+- Responses are serialized using PassSerializer
+- The /api/passes/ endpoint supports full CRUD operations through different HTTP methods
+- Default sorting is by creation date (newest first)
